@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2021",
+    "module": "commonjs",
+    "lib": ["es6"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["main.ts", "preload.js"],
+  "exclude": ["node_modules", ".next", "out", "release"]
+}

@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================================
+// MODEL-MODEL UTAMA
+// =====================================================================
+
+model User {
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+  role     Role   @default(CASHIER)
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime? // <-- Soft Delete
+
+  transactions Transaction[]
+}
+
+model Category {
+  id   String @id @default(cuid())
+  name String @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // <-- Soft Delete
+
+  products Product[]
+}
+
+model Product {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  sku         String? @unique
+  price       Int // Harga dalam satuan terkecil (Rupiah)
+  stock       Int     @default(0)
+  imageUrl    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // <-- Soft Delete
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  transactionItems TransactionItem[]
+  stockAdjustments StockAdjustment[]
+
+  @@index([name])
+  @@index([sku])
+}
+
+model Customer {
+  id      String  @id @default(cuid())
+  name    String
+  phone   String? @unique
+  email   String? @unique
+  address String?
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime? // <-- Soft Delete
+
+  transactions Transaction[]
+}
+
+// =====================================================================
+// MODEL-MODEL TRANSAKSIONAL (LOGS)
+// =====================================================================
+
+model Transaction {
+  id              String            @id @default(cuid())
+  totalAmount     Int
+  paymentMethod   PaymentMethod
+  status          TransactionStatus @default(COMPLETED)
+  transactionDate DateTime          @default(now())
+  notes           String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  items TransactionItem[]
+}
+
+model TransactionItem {
+  id                String      @id @default(cuid())
+  quantity          Int
+  priceAtTimeOfSale Int
+
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model StockAdjustment {
+  id        String              @id @default(cuid())
+  quantity  Int
+  reason    StockAdjustmentReason
+  notes     String?
+  createdAt DateTime            @default(now())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+
+// =====================================================================
+// ENUMS
+// =====================================================================
+
+enum Role {
+  CASHIER
+  ADMIN
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  QRIS
+  TRANSFER
+}
+
+enum TransactionStatus {
+  COMPLETED
+  CANCELLED
+  PENDING
+}
+
+enum StockAdjustmentReason {
+  INITIAL_STOCK
+  RECEIVED_FROM_SUPPLIER
+  RETURN_TO_SUPPLIER
+  DAMAGED
+  LOST
+  INVENTORY_COUNT
+}
